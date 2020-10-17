@@ -6,6 +6,7 @@ scene1 = Scene("씬","Images/배경.png")
 INIT_CX = 4
 INIT_CY = 19
 COLOR_BLANK = 7
+COLOR_SHADOW = 8
 LEFT = 0
 RIGHT = 1
 DOWN = 2
@@ -17,9 +18,14 @@ TIMER_PERIOD = 0.7
 
 cx = 0
 cy = 0
-# Color : 0~6 Tetris block, 7 : Blank, 8 : 
-c_num = 1 # TODO Random
+# Color : 0~6 Tetris block, 7 : Blank, 8 : Shadow
+c_num = 0
 c_dir = 0
+sx = 0
+sy = 0
+s_num = 0
+s_dir = 0
+
 # dx [num][dircetion][rotate][0=y 1=x]
 d = [ [ [ [0, -1], [0, 0], [0, 1], [0, 2] ], [ [-2, 1], [-1, 1], [0, 1], [1, 1] ], [ [-1, -1], [-1, 0], [-1, 1], [-1, 2] ], [ [-2, 0], [-1, 0], [0, 0], [1, 0] ]  ],
 [ [ [0, -1], [0, 0], [0, 1], [1, -1] ], [ [-1, 0], [0, 0], [1, 1], [1, 0] ], [ [-1, 1], [0, -1], [0, 1], [0, 0] ], [ [-1, -1], [-1, 0], [0, 0], [1, 0] ]  ],
@@ -35,7 +41,7 @@ dy = [0, 0, -1]
 class Block:
     def __init__(self, bx, by):
         self.blockObj = Object("Images/block7.png")
-        self.blockObj.locate(scene1, 100+24*bx, 100+24*by)
+        self.blockObj.locate(scene1, 160+24*bx, 100+24*by)
         self.blockObj.show()
 
         self.x = bx
@@ -73,10 +79,11 @@ def set_block(x, y, num, color, dir):
         block[ty][tx].changeColor(color)
     return True
 
+
 def new_block():
     global cx, cy, c_num, c_dir
     cx = INIT_CX
-    cy = INIT_CY
+    cy = INIT_CY    
     c_num = block_queue.pop() # TODO Random or next block's
     if len(block_queue)<8:
         refill_queue()
@@ -85,8 +92,10 @@ def new_block():
     if check_block(cx, cy, c_num, c_dir) != CHECK_BLANK:
         #TODO game_over()
         endGame()
-    
-    set_block(cx, cy, c_num, c_num, c_dir)
+
+    set_block(cx, shadow_y(cx, cy, c_num, c_dir), c_num, COLOR_SHADOW, c_dir )
+    set_block(cx, cy, c_num, c_num, c_dir)   
+
 
 def get_color(x, y):
     if x<0 or 9<x or y<0 or 20<y:
@@ -142,9 +151,12 @@ def rotate_block(r):
     t_dir = (c_dir + 2*r -1)%4
 
     set_block(cx, cy, c_num, COLOR_BLANK, c_dir)
-    if check_block(cx, cy, c_num, t_dir) == CHECK_BLANK:        
+    if check_block(cx, cy, c_num, t_dir) == CHECK_BLANK:
+        set_block(cx, shadow_y(cx, cy, c_num, c_dir), c_num, COLOR_BLANK, c_dir)
         c_dir = t_dir
+        set_block(cx, shadow_y(cx, cy, c_num, c_dir), c_num, COLOR_SHADOW, t_dir)
         set_block(cx, cy, c_num, c_num, t_dir)
+        
         return True
     else:
         print("돌리기불가능")
@@ -162,10 +174,12 @@ def move_block(r):
     ty = cy + dy[r]
 
     set_block(cx, cy, c_num, COLOR_BLANK, c_dir)    
-    if check_block(tx, ty, c_num, c_dir) == CHECK_BLANK:        
+    if check_block(tx, ty, c_num, c_dir) == CHECK_BLANK:
+        set_block(cx, shadow_y(cx, cy, c_num, c_dir), c_num, COLOR_BLANK, c_dir)    # remove shadow
         cx = tx
         cy = ty
-        set_block(tx, ty, c_num, c_num, c_dir)
+        set_block(tx, shadow_y(cx, ty, c_num, c_dir), c_num, COLOR_SHADOW, c_dir)    # make new shadow
+        set_block(tx, ty, c_num, c_num, c_dir)        
         return True
     else:
         print("옮기기불가능")
@@ -175,6 +189,37 @@ def move_block(r):
             new_block()
             timer1.set(TIMER_PERIOD)
     return False
+
+# TODO 최적화가능
+def shadow_y(x, y, num, dir):
+    ix = []
+    iy = []    
+    for i in range(4):        
+        ix.append( x + d[num][dir][i][1] )
+        iy.append( y + d[num][dir][i][0] )
+    
+    flag = True
+    stack = 0
+    passing = False
+    
+    while flag and stack<21:        
+        y -= 1        
+        for i in range(4):
+            tx = x + d[num][dir][i][1]
+            ty = y + d[num][dir][i][0]            
+            if ty<0:                
+                return y+1
+            for j in range(4):
+                if tx == ix[j] and ty == iy[j]:                    
+                    passing = True 
+            if passing == False and abs(block[ty][tx].color - 3) < 4:                
+                flag = False
+            passing = False
+    return y+1
+
+
+
+
 
 def refill_queue():
     random.shuffle(block_list)
@@ -227,6 +272,14 @@ for j in range (21):
 block_list = [0, 1, 2, 3, 4, 5, 6]
 block_queue = []
 
+# HOLD 블록 만들기
+hold_block = []
+for j in range(2):
+    for i in range(4):
+        blockrow.append(Block(i-5, j+18))
+    hold_block.append(blockrow)
+    blockrow = []
+
 
 # 버튼만들기
 Object.onMouseActionDefault = defaultMouseAction
@@ -254,10 +307,17 @@ button_move_Fdown = Object("Images/button.png")
 button_move_Fdown.locate(scene1, 600, 60)
 button_move_Fdown.show()
 
-game_start()
+button_hold = Object("Images/button.png")
+button_hold.locate(scene1, 600, 200)
+button_hold.show()
+
 Timer.onTimeoutDefault = defaultTimeOut
 timer1 = Timer(TIMER_PERIOD)
-timer1.start()
+timer1.start() #TODO START TIMER
 
+
+
+
+game_start()
 startGame(scene1)
 

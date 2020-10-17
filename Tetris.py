@@ -1,7 +1,8 @@
 from bangtal import *
 import random
+from time import sleep
 
-scene1 = Scene("씬","Images/배경.png")
+scene1 = Scene("씬","Images/배경2.png")
 
 INIT_CX = 4
 INIT_CY = 19
@@ -15,6 +16,7 @@ CHECK_FILLED = 1
 CHECK_BLANK = 2
 
 TIMER_PERIOD = 0.7
+EFFECT_PERIOD = 0.1
 
 cx = 0
 cy = 0
@@ -37,6 +39,11 @@ d = [ [ [ [0, -1], [0, 0], [0, 1], [0, 2] ], [ [-2, 1], [-1, 1], [0, 1], [1, 1] 
 dx = [-1, 1, 0]
 dy = [0, 0, -1]
 
+running_effect = [False, False]
+can_move = True
+y_list = []
+count2 = 0
+
 ### CLASS
 class Block:
     def __init__(self, bx, by):
@@ -57,6 +64,7 @@ class Block:
 def print_var():
     global cx, cy, c_num, c_dir, h_num
     print("cx :"+ str(cx) +", cy :"+ str(cy) + ", c_num :"+ str(c_num) + ", c_dir :"+ str(c_dir) + ", h_num :"+ str(h_num))
+
 def check_block(x, y, num, dir):
     dir = dir % 4
     num = num % 7
@@ -139,7 +147,8 @@ def new_block():
     global cx, cy, c_num, c_dir
     cx = INIT_CX
     cy = INIT_CY
-    c_num = block_queue.pop(0) # TODO Random or next block's
+    c_num = block_queue.pop(0)
+    
     if len(block_queue)<8:
         refill_queue()
     c_dir = 0    
@@ -152,6 +161,7 @@ def new_block():
     set_block(cx, cy, c_num, c_num, c_dir)   
 
     set_next()
+    timer1.set(TIMER_PERIOD)
 
 
 def get_color(x, y):
@@ -165,6 +175,7 @@ def set_color(x, y, c):
     block[y][x].changeColor(c)
 
 def check_clear():
+    global y_list
     y_list = []
     flag = True
     for i in range(cy-2, cy+2):
@@ -178,7 +189,12 @@ def check_clear():
             y_list.append(i)
 
     if len(y_list)==0 :
-        return False
+        return False    
+    return True
+
+    
+def clear_line():
+    global y_list
     
     dc = []
     for i in range(21):
@@ -195,6 +211,10 @@ def check_clear():
             continue
         for j in range(10):
             set_color(j, i, get_color(j, i+dc[i]))
+    print("HERE")
+    new_block()
+
+
 
 
 
@@ -242,9 +262,19 @@ def move_block(r):
         print("옮기기불가능")
         set_block(cx, cy, c_num, c_num, c_dir)
         if r == DOWN:
-            check_clear()
-            new_block()
-            timer1.set(TIMER_PERIOD)
+            if not check_clear():
+                new_block()
+            else :
+                global y_list
+                timer1.set(20.0) #TODO is it good?
+                can_move = False
+                
+                for i in range(len(y_list)):
+                    effect0_obj[i].locate(scene1, 160, 100 + 24*y_list[i])
+                    effect0_obj[i].show()
+                running_effect[0] = True    
+                timer2.set(EFFECT_PERIOD)
+                timer2.start()
     return False
 
 # TODO 최적화가능
@@ -275,46 +305,75 @@ def shadow_y(x, y, num, dir):
     return y+1
 
 
-
-
-
 def refill_queue():
     random.shuffle(block_list)
     block_queue.extend(block_list)
+
+
 
 def game_start():
     refill_queue()
     refill_queue()    
     new_block()
 
-
 def game_over():
     endGame()
 
 
+def effect_clear(list):
+    length = len(list)
+    for i in range(length):
+        effect0_obj[i].locate(scene1, 160, 100 + 24*list[i])
+        effect0_obj[i].show()
+    running_effect[0] = True
+    timer2.set(EFFECT_PERIOD)
+    timer2.start()
+    while running_effect[0]:
+        sleep(0.03)
+
+
+
 def defaultMouseAction(object, x, y, action):
-    if object == button_rotate_right:
-        rotate_block(RIGHT)
-    elif object == button_rotate_left:
-        rotate_block(LEFT)
-    elif object == button_move_right:
-        move_block(RIGHT)
-    elif object == button_move_left:
-        move_block(LEFT)
-    elif object == button_move_down:
-        can = move_block(DOWN)
-    elif object == button_move_Fdown:
-        while move_block(DOWN):
-            pass
-    elif object == button_hold:   
-        set_hold()
+    if can_move==True:
+        if object == button_rotate_right:
+            rotate_block(RIGHT)
+        elif object == button_rotate_left:
+            rotate_block(LEFT)
+        elif object == button_move_right:
+            move_block(RIGHT)
+        elif object == button_move_left:
+            move_block(LEFT)
+        elif object == button_move_down:
+            can = move_block(DOWN)
+        elif object == button_move_Fdown:
+            while move_block(DOWN):
+                pass
+        elif object == button_hold:   
+            set_hold()
     
 
 def defaultTimeOut(timer):
+    global count2
     if timer == timer1:
         move_block(DOWN)
         timer1.set(TIMER_PERIOD)
         timer1.start()
+    elif timer == timer2:
+        print(count2)
+        if count2==6 :
+            print("THERE")
+            for i in range(4):
+                effect0_obj[i].hide()
+            running_effect[0] = False
+            can_move = True
+            clear_line()            
+            count2=0
+        else:
+            count2+=1
+            for i in range(4):
+                effect0_obj[i].setImage("Images/eff_clear"+str(count2)+".png")
+            timer2.set(EFFECT_PERIOD)
+            timer2.start()
 
 
 
@@ -377,11 +436,18 @@ button_hold = Object("Images/button.png")
 button_hold.locate(scene1, 600, 200)
 button_hold.show()
 
+# 이펙트
+effect0_obj = []
+for i in range(4):
+    effect0_obj.append(Object("Images/eff_clear0.png"))
+    effect0_obj[i].locate(scene1, 160, 100+24*i)
+
+# 타이머
 Timer.onTimeoutDefault = defaultTimeOut
 timer1 = Timer(TIMER_PERIOD)
 timer1.start() #TODO START TIMER
 
-
+timer2 = Timer(EFFECT_PERIOD)
 
 
 game_start()

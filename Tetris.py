@@ -25,8 +25,8 @@ sx = 0
 sy = 0
 s_num = 0
 s_dir = 0
-
-# dx [num][dircetion][rotate][0=y 1=x]
+h_num = COLOR_BLANK
+# dx [num][dircetion][4 block][0=y 1=x]
 d = [ [ [ [0, -1], [0, 0], [0, 1], [0, 2] ], [ [-2, 1], [-1, 1], [0, 1], [1, 1] ], [ [-1, -1], [-1, 0], [-1, 1], [-1, 2] ], [ [-2, 0], [-1, 0], [0, 0], [1, 0] ]  ],
 [ [ [0, -1], [0, 0], [0, 1], [1, -1] ], [ [-1, 0], [0, 0], [1, 1], [1, 0] ], [ [-1, 1], [0, -1], [0, 1], [0, 0] ], [ [-1, -1], [-1, 0], [0, 0], [1, 0] ]  ],
 [ [ [0, -1], [0, 0], [0, 1], [1, 1] ], [ [-1, 1], [-1, 0],  [0, 0], [1, 0] ], [ [-1, -1], [0, -1], [0, 1], [0, 0] ], [ [-1, 0], [0, 0], [1, -1], [1, 0] ]  ],
@@ -53,6 +53,10 @@ class Block:
 
 
 ### FUNCTION
+# For test
+def print_var():
+    global cx, cy, c_num, c_dir, h_num
+    print("cx :"+ str(cx) +", cy :"+ str(cy) + ", c_num :"+ str(c_num) + ", c_dir :"+ str(c_dir) + ", h_num :"+ str(h_num))
 def check_block(x, y, num, dir):
     dir = dir % 4
     num = num % 7
@@ -79,15 +83,66 @@ def set_block(x, y, num, color, dir):
         block[ty][tx].changeColor(color)
     return True
 
+def make_block(x, y, num, dir):
+    set_block(x, shadow_y(x, y, num, dir), num, COLOR_SHADOW, dir)
+    set_block(x, y, num, num, dir)
 
-def new_block():
+def delete_block(x, y, num, dir):
+    set_block(x, shadow_y(x, y, num, dir), num, COLOR_BLANK, dir)
+    set_block(x, y, num, COLOR_BLANK, dir)
+
+
+def set_hold():
+    print_var()
+    global h_num, cx, cy, c_num, c_dir
+    #set_block(cx, cy, c_num, COLOR_BLANK, c_dir)
+    delete_block(cx, cy, c_num, c_dir)
+    if h_num == COLOR_BLANK:        
+        h_num = c_num
+        new_block()
+    elif check_block(cx, cy, h_num, 0) != CHECK_BLANK:
+        print(check_block(cx, cy, h_num, 0))
+        print("Hold block can't change with filled space")
+        make_block(cx, cy, c_num, c_dir)
+        return
+    else:        
+        t_num = c_num
+        c_dir = 0
+        c_num = h_num
+        #set_block(cx, cy, c_num, c_num, c_dir)
+        make_block(cx, cy, c_num, c_dir)
+        h_num = t_num
+
+    for i in range(2):
+        for j in range(4):
+            hold_block[i][j].changeColor(COLOR_BLANK)
+    for i in range(4):   
+        tx = 1 + d[h_num][0][i][1]
+        ty = 0 + d[h_num][0][i][0]        
+        hold_block[ty][tx].changeColor(h_num)
+
+def set_next():
+    global cx, cy, c_num, c_dir
+    color = block_queue[0]
+
+    for i in range(2):
+        for j in range(4):
+            next_block[i][j].changeColor(COLOR_BLANK)
+
+    for i in range(4):
+        tx = 1 + d[color][0][i][1]
+        ty = 0 + d[color][0][i][0]
+        next_block[ty][tx].changeColor(color)
+    
+
+def new_block():    
     global cx, cy, c_num, c_dir
     cx = INIT_CX
-    cy = INIT_CY    
-    c_num = block_queue.pop() # TODO Random or next block's
+    cy = INIT_CY
+    c_num = block_queue.pop(0) # TODO Random or next block's
     if len(block_queue)<8:
         refill_queue()
-    c_dir = 0
+    c_dir = 0    
     
     if check_block(cx, cy, c_num, c_dir) != CHECK_BLANK:
         #TODO game_over()
@@ -95,6 +150,8 @@ def new_block():
 
     set_block(cx, shadow_y(cx, cy, c_num, c_dir), c_num, COLOR_SHADOW, c_dir )
     set_block(cx, cy, c_num, c_num, c_dir)   
+
+    set_next()
 
 
 def get_color(x, y):
@@ -227,7 +284,7 @@ def refill_queue():
 
 def game_start():
     refill_queue()
-    refill_queue()
+    refill_queue()    
     new_block()
 
 
@@ -249,6 +306,8 @@ def defaultMouseAction(object, x, y, action):
     elif object == button_move_Fdown:
         while move_block(DOWN):
             pass
+    elif object == button_hold:   
+        set_hold()
     
 
 def defaultTimeOut(timer):
@@ -280,6 +339,13 @@ for j in range(2):
     hold_block.append(blockrow)
     blockrow = []
 
+# NEXT 블록 만들기
+next_block = []
+for j in range(2):
+    for i in range(4):
+        blockrow.append(Block(i+11, j+18))
+    next_block.append(blockrow)
+    blockrow = []
 
 # 버튼만들기
 Object.onMouseActionDefault = defaultMouseAction

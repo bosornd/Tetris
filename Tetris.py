@@ -4,6 +4,7 @@ from time import sleep
 
 scene1 = Scene("씬","Images/배경4.png")
 
+
 INIT_CX = 4
 INIT_CY = 19
 COLOR_BLANK = 7
@@ -28,6 +29,7 @@ sy = 0
 s_num = 0
 s_dir = 0
 h_num = COLOR_BLANK
+
 # dx [num][dircetion][4 block][0=y 1=x]
 d = [ [ [ [0, -1], [0, 0], [0, 1], [0, 2] ], [ [-2, 1], [-1, 1], [0, 1], [1, 1] ], [ [-1, -1], [-1, 0], [-1, 1], [-1, 2] ], [ [-2, 0], [-1, 0], [0, 0], [1, 0] ]  ],
 [ [ [0, -1], [0, 0], [0, 1], [1, -1] ], [ [-1, 0], [0, 0], [1, 1], [1, 0] ], [ [-1, 1], [0, -1], [0, 1], [0, 0] ], [ [-1, -1], [-1, 0], [0, 0], [1, 0] ]  ],
@@ -44,6 +46,7 @@ can_move = True
 y_list = []
 count2 = 0
 
+
 ### CLASS
 class Block:
     def __init__(self, bx, by):
@@ -57,6 +60,36 @@ class Block:
     def changeColor(self, c):
         self.color = c
         self.blockObj.setImage("Images/block"+str(c)+".png")
+
+class Combo:
+    def __init__(self, scene, x, y):
+        self.combo = 0
+        self.obj = Object("Images/combo1.png")
+        self.obj.locate(scene, x, y)
+
+    def set(self, num):
+        self.combo = num
+        if num <= 0:
+            self.hide()
+        elif num>=5:
+            self.obj.setImage("Images/combo"+str(5)+".png")
+            self.obj.show()
+            sound_combo[5].play()
+            timer_combo.set(1.0)
+            timer_combo.start()
+        else:
+            self.obj.setImage("Images/combo"+str(num)+".png")
+            self.obj.show()
+            sound_combo[num].play()
+            timer_combo.set(1.0)
+            timer_combo.start()
+    
+    def hide(self):
+        self.obj.hide()
+
+    def increase(self):
+        self.set(self.combo+1)
+
 
 
 ### FUNCTION
@@ -195,7 +228,7 @@ def check_clear():
     
 def clear_line():
     global y_list
-    
+    sound_line[len(y_list)].play()
     dc = []
     for i in range(21):
         dc.append(0)
@@ -204,14 +237,13 @@ def clear_line():
         k = y_list[i] - i
         for j in range( k, 21 ):
             dc[j] +=1
-    print(y_list)
-    print(dc)
+    
     for i in range(21):
         if dc[i] == 0:            
             continue
         for j in range(10):
             set_color(j, i, get_color(j, i+dc[i]))
-    print("HERE")
+    
     new_block()
 
 
@@ -235,8 +267,7 @@ def rotate_block(r):
         set_block(cx, cy, c_num, c_num, t_dir)
         
         return True
-    else:
-        print("돌리기불가능")
+    else:        
         set_block(cx, cy, c_num, c_num, c_dir)
     return False
 
@@ -252,6 +283,7 @@ def move_block(r):
 
     set_block(cx, cy, c_num, COLOR_BLANK, c_dir)    
     if check_block(tx, ty, c_num, c_dir) == CHECK_BLANK:
+        timer1.set(TIMER_PERIOD)
         set_block(cx, shadow_y(cx, cy, c_num, c_dir), c_num, COLOR_BLANK, c_dir)    # remove shadow
         cx = tx
         cy = ty
@@ -259,15 +291,17 @@ def move_block(r):
         set_block(tx, ty, c_num, c_num, c_dir)        
         return True
     else:
-        print("옮기기불가능")
         set_block(cx, cy, c_num, c_num, c_dir)
         if r == DOWN:
             if not check_clear():
+                sound_fdrop.play()     
+                combo.set(0)
                 new_block()
             else :
                 global y_list
                 timer1.set(20.0) #TODO is it good?
                 can_move = False
+                combo.increase()
                 
                 for i in range(len(y_list)):
                     effect0_obj[i].locate(scene1, 140, 100 + 24*y_list[i])
@@ -345,11 +379,13 @@ def defaultMouseAction(object, x, y, action):
             move_block(LEFT)
         elif object == button_move_down:
             can = move_block(DOWN)
-        elif object == button_move_Fdown:
+        elif object == button_move_Fdown:            
             while move_block(DOWN):
-                pass
+                pass            
         elif object == button_hold:   
             set_hold()
+    else:
+        print("can_move:"+str(can_move))
     
 
 def defaultTimeOut(timer):
@@ -358,10 +394,8 @@ def defaultTimeOut(timer):
         move_block(DOWN)
         timer1.set(TIMER_PERIOD)
         timer1.start()
-    elif timer == timer2:
-        print(count2)
-        if count2==6 :
-            print("THERE")
+    elif timer == timer2:        
+        if count2==6 :            
             for i in range(4):
                 effect0_obj[i].hide()
             running_effect[0] = False
@@ -374,8 +408,11 @@ def defaultTimeOut(timer):
                 effect0_obj[i].setImage("Images/eff_clear"+str(count2)+".png")
             timer2.set(EFFECT_PERIOD)
             timer2.start()
+    elif timer == timer_combo:
+        combo.hide()
 
-
+def soundEnd(sound):
+    sound.stop()
 
 ### MAIN
 # 10 X 21 블록 만들기 block[y][x]
@@ -436,12 +473,29 @@ button_hold = Object("Images/button_hold.png")
 button_hold.locate(scene1, 482, 184)
 button_hold.show()
 
-# 이펙트
+# 라인 지우기 이펙트
 effect0_obj = []
 for i in range(4):
     effect0_obj.append(Object("Images/eff_clear0.png"))
     effect0_obj[i].locate(scene1, 140, 100+24*i)
 
+# 콤보 이펙트
+combo = Combo(scene1, 15, 225)
+
+
+# Sounds
+Sound.onCompletedDefault = soundEnd
+
+sound_combo = [0]
+for i in range(1, 6):
+    sound_combo.append( Sound("Sounds/combo"+str(i)+".wav") )
+
+sound_line = [0]
+for i in range(1, 5):
+    sound_line.append( Sound("Sounds/line"+str(i)+".wav") )
+
+sound_fdrop = Sound("Sounds/fdrop.wav")
+  
 # 타이머
 Timer.onTimeoutDefault = defaultTimeOut
 timer1 = Timer(TIMER_PERIOD)
@@ -449,6 +503,7 @@ timer1.start() #TODO START TIMER
 
 timer2 = Timer(EFFECT_PERIOD)
 
+timer_combo = Timer(1.0)
 
 game_start()
 startGame(scene1)

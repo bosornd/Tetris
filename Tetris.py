@@ -3,7 +3,9 @@ import random
 from time import sleep
 
 scene1 = Scene("씬","Images/배경4.png")
-
+setGameOption(GameOption.INVENTORY_BUTTON, False)
+setGameOption(GameOption.MESSAGE_BOX_BUTTON, False)
+setGameOption(GameOption.ROOM_TITLE, False)
 
 INIT_CX = 4
 INIT_CY = 19

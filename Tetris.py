@@ -2,7 +2,7 @@ from bangtal import *
 import random
 from time import sleep
 
-scene1 = Scene("씬","Images/배경2.png")
+scene1 = Scene("씬","Images/배경4.png")
 
 INIT_CX = 4
 INIT_CY = 19
@@ -48,7 +48,7 @@ count2 = 0
 class Block:
     def __init__(self, bx, by):
         self.blockObj = Object("Images/block7.png")
-        self.blockObj.locate(scene1, 160+24*bx, 100+24*by)
+        self.blockObj.locate(scene1, 140+24*bx, 100+24*by)
         self.blockObj.show()
 
         self.x = bx
@@ -270,7 +270,7 @@ def move_block(r):
                 can_move = False
                 
                 for i in range(len(y_list)):
-                    effect0_obj[i].locate(scene1, 160, 100 + 24*y_list[i])
+                    effect0_obj[i].locate(scene1, 140, 100 + 24*y_list[i])
                     effect0_obj[i].show()
                 running_effect[0] = True    
                 timer2.set(EFFECT_PERIOD)
@@ -408,39 +408,39 @@ for j in range(2):
 
 # 버튼만들기
 Object.onMouseActionDefault = defaultMouseAction
-button_rotate_right = Object("Images/button.png")
-button_rotate_right.locate(scene1, 700, 200)
+button_rotate_right = Object("Images/button_rotate_right.png")
+button_rotate_right.locate(scene1, 544, 184)
 button_rotate_right.show()
 
-button_rotate_left = Object("Images/button.png")
-button_rotate_left.locate(scene1, 500, 200)
+button_rotate_left = Object("Images/button_rotate_left.png")
+button_rotate_left.locate(scene1, 420, 184)
 button_rotate_left.show()
 
-button_move_right = Object("Images/button.png")
-button_move_right.locate(scene1, 700, 130)
+button_move_right = Object("Images/button_move_right.png")
+button_move_right.locate(scene1, 544, 122)
 button_move_right.show()
 
-button_move_left = Object("Images/button.png")
-button_move_left.locate(scene1, 500, 130)
+button_move_left = Object("Images/button_move_left.png")
+button_move_left.locate(scene1, 420, 122)
 button_move_left.show()
 
-button_move_down = Object("Images/button.png")
-button_move_down.locate(scene1, 600, 130)
+button_move_down = Object("Images/button_move_down.png")
+button_move_down.locate(scene1, 482, 122)
 button_move_down.show()
 
-button_move_Fdown = Object("Images/button.png")
-button_move_Fdown.locate(scene1, 600, 60)
+button_move_Fdown = Object("Images/button_move_Fdown.png")
+button_move_Fdown.locate(scene1, 420, 60)
 button_move_Fdown.show()
 
-button_hold = Object("Images/button.png")
-button_hold.locate(scene1, 600, 200)
+button_hold = Object("Images/button_hold.png")
+button_hold.locate(scene1, 482, 184)
 button_hold.show()
 
 # 이펙트
 effect0_obj = []
 for i in range(4):
     effect0_obj.append(Object("Images/eff_clear0.png"))
-    effect0_obj[i].locate(scene1, 160, 100+24*i)
+    effect0_obj[i].locate(scene1, 140, 100+24*i)
 
 # 타이머
 Timer.onTimeoutDefault = defaultTimeOut

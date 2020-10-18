@@ -188,7 +188,8 @@ def new_block():
     
     if check_block(cx, cy, c_num, c_dir) != CHECK_BLANK:
         #TODO game_over()
-        endGame()
+        game_over()
+        return
 
     set_block(cx, shadow_y(cx, cy, c_num, c_dir), c_num, COLOR_SHADOW, c_dir )
     set_block(cx, cy, c_num, c_num, c_dir)   
@@ -245,8 +246,6 @@ def clear_line():
             set_color(j, i, get_color(j, i+dc[i]))
     
     new_block()
-
-
 
 
 
@@ -347,11 +346,51 @@ def refill_queue():
 
 def game_start():
     refill_queue()
-    refill_queue()    
+    refill_queue()
     new_block()
+    timer1.set(TIMER_PERIOD)
+    timer1.start()
+
+def game_restart():
+    global cx, cy, c_num, c_dir, can_move, h_num
+    message_game_over.hide()
+    button_restart.hide()
+
+    combo.set(0)
+    for j in range (21):
+        for i in range (10):
+            block[j][i].changeColor(COLOR_BLANK)
+
+    for i in range(2):
+        for j in range(4):
+            next_block[i][j].changeColor(COLOR_BLANK)
+            
+    for i in range(2):
+        for j in range(4):
+            hold_block[i][j].changeColor(COLOR_BLANK)
+
+    cx = 0
+    cy = 0    
+    c_num = 0
+    c_dir = 0
+    h_num = COLOR_BLANK
+    
+    block_queue.clear()
+    scene1.setLight(1)
+
+    can_move = True
+    game_start()
 
 def game_over():
-    endGame()
+    print("GAME OVER")
+    global can_move
+    timer1.set(1000)
+    timer1.stop()
+    scene1.setLight(0.3)
+    message_game_over.show()
+    button_restart.show()
+    can_move = False
+
 
 
 def effect_clear(list):
@@ -385,12 +424,15 @@ def defaultMouseAction(object, x, y, action):
         elif object == button_hold:   
             set_hold()
     else:
+        if object == button_restart:            
+            game_restart()
         print("can_move:"+str(can_move))
     
 
 def defaultTimeOut(timer):
-    global count2
-    if timer == timer1:
+    global count2, can_move
+    if timer == timer1 and can_move:
+        print("time period")
         move_block(DOWN)
         timer1.set(TIMER_PERIOD)
         timer1.start()
@@ -473,6 +515,14 @@ button_hold = Object("Images/button_hold.png")
 button_hold.locate(scene1, 482, 184)
 button_hold.show()
 
+button_restart = Object("Images/button_restart.png")
+button_restart.locate(scene1, 490, 260)
+
+# 게임오버
+message_game_over = Object("Images/game_over.png")
+message_game_over.locate(scene1, 280, 370)
+
+
 # 라인 지우기 이펙트
 effect0_obj = []
 for i in range(4):
@@ -498,11 +548,10 @@ sound_fdrop = Sound("Sounds/fdrop.wav")
   
 # 타이머
 Timer.onTimeoutDefault = defaultTimeOut
+
 timer1 = Timer(TIMER_PERIOD)
-timer1.start() #TODO START TIMER
 
 timer2 = Timer(EFFECT_PERIOD)
-
 timer_combo = Timer(1.0)
 
 game_start()

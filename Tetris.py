@@ -15,6 +15,7 @@ DOWN = 2
 CHECK_OUTSIDE = 0
 CHECK_FILLED = 1
 CHECK_BLANK = 2
+BOSS_HP = 5000
 
 TIMER_PERIOD = 0.7
 EFFECT_PERIOD = 0.1
@@ -40,12 +41,14 @@ d = [ [ [ [0, -1], [0, 0], [0, 1], [0, 2] ], [ [-2, 1], [-1, 1], [0, 1], [1, 1] 
 [ [ [0, 1], [0, 0], [1, -1], [1, 0]  ], [ [-1, 0], [0, 1], [0, 0], [1, 1] ], [ [-1, 1], [-1, 0],  [0, -1], [0, 0] ], [ [-1, -1], [0, -1], [0, 0], [1, 0] ]  ] ]
 dx = [-1, 1, 0]
 dy = [0, 0, -1]
+damage = [0, 100, 200, 400, 600]
 
 running_effect = [False, False]
 can_move = True
 y_list = []
-count2 = 0
 
+count2 = 0
+count_boss = 0
 
 ### CLASS
 class Block:
@@ -89,6 +92,36 @@ class Combo:
 
     def increase(self):
         self.set(self.combo+1)
+
+    def get_combo(self):
+        return self.combo
+
+class Boss:
+    def __init__(self, scene, health):
+        self.hp = health
+        self.obj = Object("Images/쿰-0.png")
+        self.obj.locate(scene, 770, 155)
+        self.obj.show()
+        
+    def decrease_hp(self, dam):
+        self.hp -= dam
+        print("HP : "+str(self.hp))
+        if self.hp < 1 :
+            self.obj.hide()
+            game_clear()
+
+    def set_image(self, num):
+        if num >= 0 and num <= 7:
+            self.obj.setImage("Images/쿰-"+str(num)+".png")
+
+    def set_hp(self, num):
+        self.hp = num
+
+    def hide(self):
+        self.obj.hide()
+
+    def show(self):
+        self.obj.show()
 
 
 
@@ -134,16 +167,13 @@ def delete_block(x, y, num, dir):
 
 
 def set_hold():
-    print_var()
     global h_num, cx, cy, c_num, c_dir
     #set_block(cx, cy, c_num, COLOR_BLANK, c_dir)
     delete_block(cx, cy, c_num, c_dir)
     if h_num == COLOR_BLANK:        
         h_num = c_num
         new_block()
-    elif check_block(cx, cy, h_num, 0) != CHECK_BLANK:
-        print(check_block(cx, cy, h_num, 0))
-        print("Hold block can't change with filled space")
+    elif check_block(cx, cy, h_num, 0) != CHECK_BLANK:        
         make_block(cx, cy, c_num, c_dir)
         return
     else:        
@@ -243,7 +273,8 @@ def clear_line():
         if dc[i] == 0:            
             continue
         for j in range(10):
-            set_color(j, i, get_color(j, i+dc[i]))
+            set_color(j, i, get_color(j, i+dc[i]))    
+    boss.decrease_hp(damage[len(y_list)]*(1+combo.get_combo()*0.1))
     
     new_block()
 
@@ -350,10 +381,14 @@ def game_start():
     new_block()
     timer1.set(TIMER_PERIOD)
     timer1.start()
+    timer_boss.set(EFFECT_PERIOD)
+    timer_boss.start()
+    boss.show()
 
 def game_restart():
     global cx, cy, c_num, c_dir, can_move, h_num
     message_game_over.hide()
+    message_game_clear.hide()
     button_restart.hide()
 
     combo.set(0)
@@ -379,18 +414,28 @@ def game_restart():
     scene1.setLight(1)
 
     can_move = True
+    boss.set_hp(BOSS_HP)
     game_start()
 
 def game_over():
-    print("GAME OVER")
+    sound_game_over.play()
     global can_move
-    timer1.set(1000)
+    #timer1.set(1000)
     timer1.stop()
     scene1.setLight(0.3)
     message_game_over.show()
     button_restart.show()
     can_move = False
 
+def game_clear():
+    sound_game_clear.play()  
+    global can_move
+    #timer1.set(1000)
+    timer1.stop()
+    scene1.setLight(0.3)
+    message_game_clear.show()
+    button_restart.show()
+    can_move = False
 
 
 def effect_clear(list):
@@ -430,9 +475,9 @@ def defaultMouseAction(object, x, y, action):
     
 
 def defaultTimeOut(timer):
-    global count2, can_move
+    global count2, count_boss, can_move
     if timer == timer1 and can_move:
-        print("time period")
+        
         move_block(DOWN)
         timer1.set(TIMER_PERIOD)
         timer1.start()
@@ -452,6 +497,14 @@ def defaultTimeOut(timer):
             timer2.start()
     elif timer == timer_combo:
         combo.hide()
+    elif timer == timer_boss:
+        if count_boss == 7:
+            count_boss=0
+        else:
+            count_boss +=1
+        boss.set_image(count_boss)
+        timer_boss.set(EFFECT_PERIOD)
+        timer_boss.start()
 
 def soundEnd(sound):
     sound.stop()
@@ -522,6 +575,11 @@ button_restart.locate(scene1, 490, 260)
 message_game_over = Object("Images/game_over.png")
 message_game_over.locate(scene1, 280, 370)
 
+message_game_clear = Object("Images/game_clear.png")
+message_game_clear.locate(scene1, 280, 370)
+
+# 보스
+boss = Boss(scene1, BOSS_HP)
 
 # 라인 지우기 이펙트
 effect0_obj = []
@@ -545,7 +603,9 @@ for i in range(1, 5):
     sound_line.append( Sound("Sounds/line"+str(i)+".wav") )
 
 sound_fdrop = Sound("Sounds/fdrop.wav")
-  
+sound_game_over = Sound("Sounds/game_over.wav") 
+sound_game_clear = Sound("Sounds/game_clear.wav") 
+
 # 타이머
 Timer.onTimeoutDefault = defaultTimeOut
 
@@ -553,6 +613,7 @@ timer1 = Timer(TIMER_PERIOD)
 
 timer2 = Timer(EFFECT_PERIOD)
 timer_combo = Timer(1.0)
+timer_boss = Timer(EFFECT_PERIOD)
 
 game_start()
 startGame(scene1)

@@ -73,24 +73,23 @@ class Combo:
         self.obj.locate(scene, x, y)
 
     def set(self, num):
-        self.combo = num
-        if num <= 0:
-            self.hide()
-        elif num>=5:
-            self.obj.setImage("Images/combo"+str(5)+".png")
-            self.obj.show()
-            sound_combo[5].play()
-            timer_combo.set(1.0)
-            timer_combo.start()
-        else:
-            self.obj.setImage("Images/combo"+str(num)+".png")
-            self.obj.show()
-            sound_combo[num].play()
-            timer_combo.set(1.0)
-            timer_combo.start()
+        self.combo = num        
     
     def hide(self):
         self.obj.hide()
+
+    def play_combo(self):
+        if self.combo <=0:
+            self.hide()
+        else:
+            num =self.combo
+            if num>=5:
+                num = 5
+            self.obj.setImage("Images/combo"+str(num)+".png")
+            self.obj.show()
+            sound_combo[num].play(loop = False)
+            timer_combo.set(1.0)
+            timer_combo.start()
 
     def increase(self):
         self.set(self.combo+1)
@@ -209,10 +208,10 @@ def set_next():
     
 
 def new_block():    
-    global cx, cy, c_num, c_dir
+    global cx, cy, c_num, c_dir, can_move
     cx = INIT_CX
     cy = INIT_CY
-    c_num = block_queue.pop(0)
+    c_num = block_queue.pop(0) #TODO should done this    
     
     if len(block_queue)<8:
         refill_queue()
@@ -227,7 +226,10 @@ def new_block():
     set_block(cx, cy, c_num, c_num, c_dir)   
 
     set_next()
+    can_move = True    
     timer1.set(TIMER_PERIOD)
+    timer1.start()
+
 
 
 def get_color(x, y):
@@ -261,7 +263,7 @@ def check_clear():
     
 def clear_line():
     global y_list
-    sound_line[len(y_list)].play()
+    sound_line[len(y_list)].play(loop = False)
     dc = []
     for i in range(21):
         dc.append(0)
@@ -276,9 +278,10 @@ def clear_line():
             continue
         for j in range(10):
             set_color(j, i, get_color(j, i+dc[i]))    
-    boss.decrease_hp(damage[len(y_list)]*(1+combo.get_combo()*0.1))
-    
-    new_block()
+    boss.decrease_hp(damage[len(y_list)]*(1+combo.get_combo()*0.1))    
+    combo.increase()
+    if boss.hp > 0 :
+        new_block()
 
 
 
@@ -305,7 +308,7 @@ def rotate_block(r):
 
 # r : LEFT 0, RIGHT 1, DOWN 2
 def move_block(r):
-    global cx, cy, c_num, c_dir, dx, dy
+    global cx, cy, c_num, c_dir, dx, dy, cam_move, can_move
     if r!=0 and r!=1 and r!=2:
         print("ERR : move_block(), wrong 'r' input")
         return False
@@ -315,7 +318,8 @@ def move_block(r):
 
     set_block(cx, cy, c_num, COLOR_BLANK, c_dir)    
     if check_block(tx, ty, c_num, c_dir) == CHECK_BLANK:
-        timer1.set(TIMER_PERIOD)
+        if(r == DOWN):
+            timer1.set(TIMER_PERIOD)       
         set_block(cx, shadow_y(cx, cy, c_num, c_dir), c_num, COLOR_BLANK, c_dir)    # remove shadow
         cx = tx
         cy = ty
@@ -326,14 +330,14 @@ def move_block(r):
         set_block(cx, cy, c_num, c_num, c_dir)
         if r == DOWN:
             if not check_clear():
-                sound_fdrop.play()     
+                sound_fdrop.play(loop = False)     
                 combo.set(0)
                 new_block()
             else :
                 global y_list
-                timer1.set(20.0) #TODO is it good?
-                can_move = False
-                combo.increase()
+                combo.play_combo()
+                timer1.set(20.0) #TODO is it good?              
+                can_move = False                
                 
                 for i in range(len(y_list)):
                     effect0_obj[i].locate(scene1, 140, 100 + 24*y_list[i])
@@ -341,6 +345,7 @@ def move_block(r):
                 running_effect[0] = True    
                 timer2.set(EFFECT_PERIOD)
                 timer2.start()
+        
     return False
 
 # TODO 최적화가능
@@ -420,7 +425,7 @@ def game_restart():
     game_start()
 
 def game_over():
-    sound_game_over.play()
+    sound_game_over.play(loop = False)
     global can_move
     #timer1.set(1000)
     timer1.stop()
@@ -430,9 +435,9 @@ def game_over():
     can_move = False
 
 def game_clear():
-    sound_game_clear.play()  
+    sound_game_clear.play(loop = False)  
     global can_move
-    #timer1.set(1000)
+    timer1.set(50)
     timer1.stop()
     scene1.setLight(0.3)
     message_game_clear.show()
@@ -454,6 +459,7 @@ def effect_clear(list):
 
 
 def defaultMouseAction(object, x, y, action):
+    global can_move
     if can_move==True:
         if object == button_rotate_right:
             rotate_block(RIGHT)
@@ -473,22 +479,21 @@ def defaultMouseAction(object, x, y, action):
     else:
         if object == button_restart:            
             game_restart()
-        print("can_move:"+str(can_move))
+
     
 
 def defaultTimeOut(timer):
     global count2, count_boss, can_move
-    if timer == timer1 and can_move:
-        
-        move_block(DOWN)
+    if timer == timer1 and can_move:        
         timer1.set(TIMER_PERIOD)
         timer1.start()
+        move_block(DOWN)
     elif timer == timer2:        
         if count2==6 :            
             for i in range(4):
                 effect0_obj[i].hide()
-            running_effect[0] = False
-            can_move = True
+            running_effect[0] = False           
+            can_move = True            
             clear_line()            
             count2=0
         else:
@@ -578,7 +583,7 @@ message_game_over = Object("Images/game_over.png")
 message_game_over.locate(scene1, 280, 370)
 
 message_game_clear = Object("Images/game_clear.png")
-message_game_clear.locate(scene1, 280, 370)
+message_game_clear.locate(scene1, 380, 370)
 
 # 보스
 boss = Boss(scene1, BOSS_HP)
@@ -616,6 +621,20 @@ timer1 = Timer(TIMER_PERIOD)
 timer2 = Timer(EFFECT_PERIOD)
 timer_combo = Timer(1.0)
 timer_boss = Timer(EFFECT_PERIOD)
+
+
+# test용
+"""
+for j in range (15):
+    for i in range (10):
+        if 4<= i <= 7:
+            continue
+        block[j][i].changeColor(3)
+block[0][4].changeColor(3)
+block[0][5].changeColor(3)
+"""   
+
+
 
 game_start()
 startGame(scene1)

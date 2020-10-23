@@ -7,8 +7,10 @@
 3. python 3.8을 사용중인지 확인해주세요.
 4. bangtal 패키지가 최신버전 (0.24)인지 확인해주세요.
 5. 위 방법을 전부 확인했는데 Type error: playSound() missing 1 required positional argument :'loop' 에러가 여전히 나타나나요?
-5.1. Tetris.py (코드) 에 모든 'play()'를 'play(False)' 로 바꾼 후 실행해보세요.
-5.2. 이 오류가 아니라면, e-class 리뷰 코멘트에 오류내용을 알려주세요.
+Tetris.py (코드) 에 모든 'play()'를 'play(False)' 로 바꾼 후 실행해보세요.  
+이 오류가 아니라면, e-class 리뷰 코멘트에 오류내용을 알려주세요.  
+
+---
 
   
 ![블록](https://user-images.githubusercontent.com/63161899/96385307-0208d300-11ce-11eb-902c-6b349ae60143.png)

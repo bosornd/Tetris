@@ -5,7 +5,7 @@
 1. Images 폴더와 마찬가지로 Sounds 폴더를 다운로드 받았는지 확인해주세요.
 2. 거기에 'combo1.wav', 'fdrop.wav', 'game_clear.wav' 등 13개의 음원이 들어있는지 확인해주세요.
 3. python 3.8을 사용중인지 확인해주세요.
-4. bangtal 패키지가 최신버전 (0.24)인지 확인해주세요.
+4. bangtal 패키지가 최신버전 (0.32)인지 확인해주세요.
 5. 위 방법을 전부 확인했는데 Type error: playSound() missing 1 required positional argument :'loop' 에러가 여전히 나타나나요?  
 Tetris.py (코드) 에 모든 'play()'를 'play(False)' 로 바꾼 후 실행해보세요.  
 이 오류가 아니라면, e-class 리뷰 코멘트에 오류내용을 알려주세요.  

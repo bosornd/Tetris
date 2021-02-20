@@ -480,7 +480,21 @@ def defaultMouseAction(object, x, y, action):
         if object == button_restart:            
             game_restart()
 
-    
+def onKeyboard(key, pressed):
+    global can_move
+    if can_move==True and pressed:
+        if key == KeyCode.KEY_UP_ARROW:
+            rotate_block(RIGHT)
+        elif key == KeyCode.KEY_RIGHT_ARROW:
+            move_block(RIGHT)
+        elif  key == KeyCode.KEY_LEFT_ARROW:
+            move_block(LEFT)
+        elif key == KeyCode.KEY_DOWN_ARROW:
+            can = move_block(DOWN)
+        elif key == KeyCode.KEY_SPACE:            
+            while move_block(DOWN):
+                pass
+scene1.onKeyboard = onKeyboard
 
 def defaultTimeOut(timer):
     global count2, count_boss, can_move

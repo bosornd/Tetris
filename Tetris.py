@@ -494,6 +494,8 @@ def onKeyboard(key, pressed):
         elif key == KeyCode.KEY_SPACE:            
             while move_block(DOWN):
                 pass
+        elif key == KeyCode.KEY_H:
+            set_hold()
 scene1.onKeyboard = onKeyboard
 
 def defaultTimeOut(timer):
